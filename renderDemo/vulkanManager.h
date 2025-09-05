@@ -16,6 +16,8 @@ private:
 
 	VkSurfaceKHR surface;
 
+	VkDebugUtilsMessengerEXT debugMessenger;
+
 	const bool enableValidationLayers = true;
 
 	const std::vector<const char*> validationLayers = {
@@ -47,5 +49,15 @@ public:
 		const std::vector<const char*> extensions);
 
 	void run();
+
+	void setupDebugMessenger();
 	void cleanUp();
+
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+		return VK_FALSE;
+	}
+
+	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 };

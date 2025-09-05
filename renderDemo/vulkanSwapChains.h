@@ -24,6 +24,19 @@ public:
 	{
 	}
 
+	~VulkanSwapChain() 
+	{
+		for (auto framebuffer : swapChainFramebuffers) {
+			vkDestroyFramebuffer(device, framebuffer, nullptr);
+		}
+
+		for (auto imageView : swapChainImageViews) {
+			vkDestroyImageView(device, imageView, nullptr);
+		}
+
+		vkDestroySwapchainKHR(device, swapChain, nullptr);
+	}
+
 	void createSwapChain(VkPhysicalDevice device, VkSurfaceKHR surface, GLFWwindow* window);
 	void createImageViews();
 	void createFramebuffers(VkRenderPass& renderPass);

@@ -11,6 +11,13 @@ private:
 public:
     VkCommandBuffer commandBuffer;
     VkCommandPool commandPool;
+
+    ~VulkanCommandBuffer()
+    {
+      //  vkDestroyCommandPool(device, commandPool, nullptr);
+
+    }
+
     void createCommandPool(const VkDevice& device, const QueueFamilyIndices& queueFamilyIndices);
 
     void createCommandBuffer(const VkDevice& device);

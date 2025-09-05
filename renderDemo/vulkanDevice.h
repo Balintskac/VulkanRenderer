@@ -18,13 +18,22 @@ public:
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 	VulkanDevice() = default;
+
+	~VulkanDevice()
+	{
+		vkDestroyDevice(device, nullptr);
+	}
+
+
 	void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
+
 	bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
+
 	void createLogicalDevice(VkSurfaceKHR surface);
 
-    inline VkDevice& getDevice()  { return device; }
+    inline VkDevice& getDevice() const { return const_cast<VkDevice&>(device); }
 
-	inline VkPhysicalDevice& getPhysicalDevice() { return physicalDevice; }
+	inline VkPhysicalDevice& getPhysicalDevice() const { return const_cast<VkPhysicalDevice&>(physicalDevice); }
 
 	static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 

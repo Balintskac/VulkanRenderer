@@ -8,8 +8,9 @@ class VulkanWindow
     GLFWwindow* window;
     VkSurfaceKHR surface;
 public:
+    bool framebufferResized = false;
     inline VkSurfaceKHR& getSurface() { return surface; }
-    inline GLFWwindow& getWindow() { return *window; }
+    inline GLFWwindow& getWindow() const { return *window; }
 
     void createSurface(VkInstance instance) 
     {
@@ -23,8 +24,15 @@ public:
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         window = glfwCreateWindow(1024, 1024, "Vulkan renderer", nullptr, nullptr);
+
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    }
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<VulkanWindow*>(glfwGetWindowUserPointer(window));
+        app->framebufferResized = true;
     }
 };

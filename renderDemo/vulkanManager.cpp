@@ -4,17 +4,6 @@
 #include "VulkanGraphicsPipeline.h"
 #include "vulkanCommandBuffer.h"
 
-
-void VulkanManager::initWindow()
-{
-    glfwInit();
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-    window = glfwCreateWindow(1024, 1024, "Vulkan", nullptr, nullptr);
-}
-
 std::vector<const char*> VulkanManager::getRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
@@ -95,12 +84,12 @@ void VulkanManager::createInstance(
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
             .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-         //   .pfnUserCallback = debugCallback
+            .pfnUserCallback = VulkanManager::debugCallback
     };
 
     VkInstanceCreateInfo createInfo = {
        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-   //    .pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo,
+       .pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo,
        .flags = 0,
        .pApplicationInfo = &appInfo,
        .enabledLayerCount = static_cast<uint32_t>(validationLayers.size()),
@@ -115,6 +104,22 @@ void VulkanManager::createInstance(
     }
 }
 
+void VulkanManager::setupDebugMessenger()
+{
+    if (!enableValidationLayers) return;
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+ 
+    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+        throw std::runtime_error("failed to set up debug messenger!");
+    }
+}
+
 void VulkanManager::run()
 {
     VulkanWindow vk;
@@ -122,6 +127,8 @@ void VulkanManager::run()
 
     createInstance();
     vk.createSurface(instance);
+
+    setupDebugMessenger();
 
     VulkanDevice vkd;
     vkd.pickPhysicalDevice(instance, vk.getSurface());
@@ -147,11 +154,10 @@ void VulkanManager::run()
 
     vkGraphicsPipeline.createSyncObjects(vkd.getDevice());
 
-    while (!glfwWindowShouldClose(&vk.getWindow())) {
+    while (!glfwWindowShouldClose(&vk.getWindow())) 
+    {
         glfwPollEvents();
-        vkGraphicsPipeline.drawFrame(vkd.getDevice(), vkCmdBuffer, vkd.graphicsQueue, vkd.presentQueue,
-            vkSpawnChain, vkGraphicsPipeline.imageAvailableSemaphore, vkGraphicsPipeline.renderFinishedSemaphore,
-            vkGraphicsPipeline.renderPass);
+        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk);
     }
 
     vkDeviceWaitIdle(vkd.getDevice());
@@ -169,8 +175,11 @@ void VulkanManager::cleanUp()
     glfwTerminate();
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+VkResult VulkanManager::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr) 
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 
-    return VK_FALSE;
+    return VK_ERROR_EXTENSION_NOT_PRESENT;   
 }

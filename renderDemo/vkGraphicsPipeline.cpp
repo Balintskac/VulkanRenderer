@@ -172,24 +172,31 @@ void VulkanGraphicsPipeline::createSyncObjects(const VkDevice& device)
     }
 }
 
-void VulkanGraphicsPipeline::drawFrame(const VkDevice& device,
-    VulkanCommandBuffer& vkCmdBuffer, VkQueue& graphicsQueue, VkQueue& presentQueue,
-    VulkanSwapChain& swapChain,
-    VkSemaphore imageAvailableSemaphore,
-    VkSemaphore renderFinishedSemaphore, VkRenderPass renderpass)
+void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, VulkanSwapChain& swapChain, VulkanWindow& window)
 {
+    auto& device = deviceManager.getDevice();
+
     // Without fence is queue needed, vkQueueWaitIdle(graphicsQueue);
     vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &inFlightFence);
 
     uint32_t imageIndex;
-    if (vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex) != VK_SUCCESS) {
-        throw std::runtime_error("failed to acquire next image!");
+
+    VkResult result = vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+    {
+        recreateSwapChain(device, window);
+        return;
     }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("failed to acquire swap chain image!");
+    }
+
+    vkResetFences(device, 1, &inFlightFence);
 
     vkResetCommandBuffer(vkCmdBuffer.commandBuffer, 0);
 
-    vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer, imageIndex, renderpass, swapChain, graphicsPipeline);
+    vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer, imageIndex, renderPass, swapChain, graphicsPipeline);
 
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
@@ -209,7 +216,7 @@ void VulkanGraphicsPipeline::drawFrame(const VkDevice& device,
 
 
     // when no need for fence, just leave it NULL
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+    if (vkQueueSubmit(deviceManager.graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -225,9 +232,37 @@ void VulkanGraphicsPipeline::drawFrame(const VkDevice& device,
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
 
-    if (vkQueuePresentKHR(presentQueue, &presentInfo) != VK_SUCCESS) {
-        throw std::runtime_error("failed to present queue!");
+
+    result = vkQueuePresentKHR(deviceManager.presentQueue, &presentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.framebufferResized) 
+    {
+        window.framebufferResized = false;
+        recreateSwapChain(device, window);
+        vkDeviceWaitIdle(device);
+
+        swapChain.~VulkanSwapChain();
+
+        swapChain.createSwapChain(deviceManager.getPhysicalDevice(), window.getSurface(), &window.getWindow());
+        swapChain.createImageViews();
+        swapChain.createFramebuffers(renderPass);
+
     }
+    else if (result != VK_SUCCESS) {
+        throw std::runtime_error("failed to present swap chain image!");
+    }
+}
+
+void VulkanGraphicsPipeline::recreateSwapChain(const VkDevice& device, const VulkanWindow& window)
+{
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(&window.getWindow(), &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(&window.getWindow(), &width, &height);
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(device);
 }
 
 VkShaderModule VulkanGraphicsPipeline::createShaderModule(const VkDevice& device, const std::vector<char>& code)

@@ -6,6 +6,7 @@
 #include <vector>
 #include "vulkanCommandBuffer.h"
 #include <stdexcept>
+#include "vulkanWindow.h"
 
 class VulkanGraphicsPipeline
 {
@@ -18,6 +19,16 @@ public:
     VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
     VkRenderPass renderPass;
+
+    ~VulkanGraphicsPipeline() 
+    {
+      //  vkDestroyPipeline(device, graphicsPipeline, nullptr);
+      //  vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+
+     //   vkDestroyRenderPass(device, renderPass, nullptr);
+
+    }
+    
     std::vector<char> readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -42,11 +53,9 @@ public:
 
     void createSyncObjects(const VkDevice& device);
 
-    void drawFrame(const VkDevice& device,
-        VulkanCommandBuffer& vkCmdBuffer,  VkQueue& graphicsQueue,  VkQueue& presentQueue,
-        VulkanSwapChain& swapChain,
-        VkSemaphore imageAvailableSemaphore,
-        VkSemaphore renderFinishedSemaphore, VkRenderPass renderpass);
+    void drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, VulkanSwapChain& swapChain, VulkanWindow& window);
 
+    void recreateSwapChain(const VkDevice& device, const VulkanWindow& window);
+  
     VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char>& code);
 };
