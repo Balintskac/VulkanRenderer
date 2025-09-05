@@ -1,0 +1,9 @@
+namespace renderDemo
+{
+    [default_interface]
+    runtimeclass vulkanSwapChain : Windows.UI.Xaml.Controls.Page
+    {
+        vulkanSwapChain();
+        Int32 MyProperty;
+    }
+}

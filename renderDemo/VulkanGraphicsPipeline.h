@@ -1,0 +1,52 @@
+#pragma once
+
+#include <vulkan/vulkan_core.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include "vulkanCommandBuffer.h"
+#include <stdexcept>
+
+class VulkanGraphicsPipeline
+{
+private:
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+
+public:
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
+    VkRenderPass renderPass;
+    std::vector<char> readFile(const std::string& filename) {
+        std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open file!");
+        }
+
+        size_t fileSize = (size_t)file.tellg();
+        std::vector<char> buffer(fileSize);
+
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
+
+        file.close();
+
+        return buffer;
+    };
+
+    void createGraphicsPipeline(const VkDevice& device);
+
+    void createRenderPass(const VkDevice& device, const VkFormat& swapChainImageFormat);
+
+    void createSyncObjects(const VkDevice& device);
+
+    void drawFrame(const VkDevice& device,
+        VulkanCommandBuffer& vkCmdBuffer,  VkQueue& graphicsQueue,  VkQueue& presentQueue,
+        VulkanSwapChain& swapChain,
+        VkSemaphore imageAvailableSemaphore,
+        VkSemaphore renderFinishedSemaphore, VkRenderPass renderpass);
+
+    VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char>& code);
+};

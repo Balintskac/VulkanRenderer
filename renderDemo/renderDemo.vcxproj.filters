@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Resource Files\shaders">
+      <UniqueIdentifier>{5b1d1eeb-7d44-4e17-bbb4-0c5458e6fbeb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Core">
+      <UniqueIdentifier>{847bb1f7-2c04-4302-a184-8a1602e837d7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkanManager.cpp">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkanCommandBuffer.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkanQueue.cpp">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkanSwapChains.cpp">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkanDevice.cpp">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkanCommandBuffer.cpp">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vkGraphicsPipeline.cpp">
+      <Filter>Resource Files\Core</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="frag.spv">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="vert.spv">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="vulkanSwapChains.h">
+      <Filter>Resource Files\Core</Filter>
+    </None>
+    <None Include="shader_base.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="vulkanManager.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkanQueue.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkanDevice.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkanWindow.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanGraphicsPipeline.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkanCommandHandler.h">
+      <Filter>Resource Files\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

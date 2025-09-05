@@ -1,0 +1,22 @@
+# Build mappák
+[Bb]in/
+[Dd]ebug*/
+[Rr]elease*/
+x64/
+x86/
+*.obj
+*.pdb
+*.exe
+*.dll
+*.lib
+
+# VS ideiglenes fájlok
+*.vcxproj.user
+*.vs/
+*.suo
+*.ncb
+*.opendb
+*.log
+
+# CMake build könyvtár, ha van
+build/
