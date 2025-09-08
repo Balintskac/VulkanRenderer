@@ -55,7 +55,7 @@ public:
     void createSyncObjects(const VkDevice& device);
 
     void drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
-        VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer);
+        VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer);
 
     void recreateSwapChain(const VkDevice& device, const VulkanWindow& window);
   

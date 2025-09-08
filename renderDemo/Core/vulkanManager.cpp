@@ -161,13 +161,19 @@ void VulkanManager::run()
     vertexBuffer.memoryAllocation(vkd.getDevice(), vkd.getPhysicalDevice());
     vertexBuffer.fillVertexBuffer(vkd.getDevice());
 
+    vertexBuffer.createIndexBuffer(vkd.getDevice(), vkd.getPhysicalDevice());
+
     while (!glfwWindowShouldClose(&vk.getWindow())) 
     {
         glfwPollEvents();
-        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk,vertexBuffer.vertexBuffer);
+        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk,
+            vertexBuffer.vertexBuffer, vertexBuffer.indexBuffer);
     }
 
     vkDeviceWaitIdle(vkd.getDevice());
+
+    vkDestroyBuffer(vkd.getDevice(), vertexBuffer.indexBuffer, nullptr);
+    vkFreeMemory(vkd.getDevice(), vertexBuffer.indexBufferMemory, nullptr);
 
     vkDestroyBuffer(vkd.getDevice(), vertexBuffer.vertexBuffer, nullptr);
     vkFreeMemory(vkd.getDevice(), vertexBuffer.vertexBufferMemory, nullptr);

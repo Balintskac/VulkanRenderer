@@ -178,7 +178,7 @@ void VulkanGraphicsPipeline::createSyncObjects(const VkDevice& device)
 }
 
 void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
-    VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer)
+    VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer)
 {
     auto& device = deviceManager.getDevice();
 
@@ -203,7 +203,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
     vkResetCommandBuffer(vkCmdBuffer.commandBuffer, 0);
 
     vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer, imageIndex, renderPass, 
-        swapChain, graphicsPipeline, vertexBuffer);
+        swapChain, graphicsPipeline, vertexBuffer, indexBuffer);
 
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };

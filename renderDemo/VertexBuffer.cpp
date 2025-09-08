@@ -49,3 +49,53 @@ void VertexBuffer::fillVertexBuffer(const VkDevice& device)
     memcpy(data, vertices.data(), (size_t)bufferInfo.size);
     vkUnmapMemory(device, vertexBufferMemory);
 }
+
+void VertexBuffer::createIndexBuffer(const VkDevice& device, const VkPhysicalDevice& physicalDevice)
+{
+    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+    VkBufferCreateInfo bufferInfo = {
+         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+         .size = bufferSize,
+         .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    if (vkCreateBuffer(device, &bufferInfo, nullptr, &indexBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create vertex buffer!");
+    }
+
+    auto memoryTypeIndex = findMemoryType(
+        memRequirements.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        physicalDevice
+    );
+
+    VkMemoryAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = memoryTypeIndex,
+    };
+
+    vkAllocateMemory(device, &allocInfo, NULL, &indexBufferMemory);
+    vkBindBufferMemory(device, indexBuffer, indexBufferMemory, 0);
+
+    void* data;
+    vkMapMemory(device, indexBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, indices.data(), (size_t)bufferSize);
+
+    /*
+    VkMappedMemoryRange range = {
+    .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+    .memory = indexBufferMemory,
+    .offset = 0,
+    .size = VK_WHOLE_SIZE,
+    };
+
+    vkFlushMappedMemoryRanges(device, 1, &range);
+    */
+
+    vkUnmapMemory(device, indexBufferMemory);
+
+
+}
