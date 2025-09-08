@@ -37,8 +37,6 @@ public:
 
 	VulkanManager(VulkanManager&&) = delete;
 	VulkanManager& operator=(VulkanManager&&) = delete;
-
-	void initWindow();
 	std::vector<const char*> getRequiredExtensions();
 	bool checkValidationLayerSupport();
 	VkApplicationInfo createAppInfo();

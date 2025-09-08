@@ -144,29 +144,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="vkGraphicsPipeline.cpp" />
-    <ClCompile Include="vulkanCommandBuffer.cpp" />
-    <ClCompile Include="vulkanCommandBuffer.h" />
-    <ClCompile Include="vulkanDevice.cpp" />
-    <ClCompile Include="vulkanManager.cpp" />
-    <ClCompile Include="vulkanQueue.cpp" />
-    <ClCompile Include="vulkanSwapChains.cpp" />
+    <ClCompile Include="Core\main.cpp" />
+    <ClCompile Include="Core\vkGraphicsPipeline.cpp" />
+    <ClCompile Include="Core\vulkanCommandBuffer.cpp" />
+    <ClCompile Include="Core\vulkanDevice.cpp" />
+    <ClCompile Include="Core\vulkanManager.cpp" />
+    <ClCompile Include="Core\vulkanQueue.cpp" />
+    <ClCompile Include="Core\vulkanSwapChains.cpp" />
+    <ClCompile Include="VertexBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="frag.spv" />
     <None Include="packages.config" />
     <None Include="shader_base.frag" />
     <None Include="vert.spv" />
-    <None Include="vulkanSwapChains.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vulkanCommandHandler.h" />
-    <ClInclude Include="VulkanGraphicsPipeline.h" />
-    <ClInclude Include="vulkanDevice.h" />
-    <ClInclude Include="vulkanManager.h" />
-    <ClInclude Include="vulkanQueue.h" />
-    <ClInclude Include="vulkanWindow.h" />
+    <ClInclude Include="Core\StructureTypes.h" />
+    <ClInclude Include="Core\vulkanCommandBuffer.h" />
+    <ClInclude Include="Core\vulkanCommandHandler.h" />
+    <ClInclude Include="Core\vulkanDevice.h" />
+    <ClInclude Include="Core\VulkanGraphicsPipeline.h" />
+    <ClInclude Include="Core\vulkanManager.h" />
+    <ClInclude Include="Core\vulkanQueue.h" />
+    <ClInclude Include="Core\vulkanSwapChains.h" />
+    <ClInclude Include="Core\vulkanWindow.h" />
+    <ClInclude Include="VertexBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

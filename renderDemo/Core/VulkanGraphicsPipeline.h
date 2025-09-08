@@ -7,6 +7,7 @@
 #include "vulkanCommandBuffer.h"
 #include <stdexcept>
 #include "vulkanWindow.h"
+#include "structureTypes.h"
 
 class VulkanGraphicsPipeline
 {
@@ -53,7 +54,8 @@ public:
 
     void createSyncObjects(const VkDevice& device);
 
-    void drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, VulkanSwapChain& swapChain, VulkanWindow& window);
+    void drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
+        VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer);
 
     void recreateSwapChain(const VkDevice& device, const VulkanWindow& window);
   

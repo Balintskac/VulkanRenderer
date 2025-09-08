@@ -22,10 +22,15 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device)
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
+    auto bindingDescription = Vertex::getBindingDescription();
+    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -172,7 +177,8 @@ void VulkanGraphicsPipeline::createSyncObjects(const VkDevice& device)
     }
 }
 
-void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, VulkanSwapChain& swapChain, VulkanWindow& window)
+void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
+    VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer)
 {
     auto& device = deviceManager.getDevice();
 
@@ -196,7 +202,8 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
 
     vkResetCommandBuffer(vkCmdBuffer.commandBuffer, 0);
 
-    vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer, imageIndex, renderPass, swapChain, graphicsPipeline);
+    vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer, imageIndex, renderPass, 
+        swapChain, graphicsPipeline, vertexBuffer);
 
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
@@ -235,6 +242,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
 
     result = vkQueuePresentKHR(deviceManager.presentQueue, &presentInfo);
 
+    // Application window resize
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.framebufferResized) 
     {
         window.framebufferResized = false;
@@ -243,6 +251,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
 
         swapChain.~VulkanSwapChain();
 
+        // TODO: need to be placed somewhere else, in the destructor?
         swapChain.createSwapChain(deviceManager.getPhysicalDevice(), window.getSurface(), &window.getWindow());
         swapChain.createImageViews();
         swapChain.createFramebuffers(renderPass);

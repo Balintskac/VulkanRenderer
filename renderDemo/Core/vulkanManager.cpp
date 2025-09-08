@@ -3,6 +3,7 @@
 #include "vulkanSwapChains.h"
 #include "VulkanGraphicsPipeline.h"
 #include "vulkanCommandBuffer.h"
+#include "../VertexBuffer.h"
 
 std::vector<const char*> VulkanManager::getRequiredExtensions()
 {
@@ -154,14 +155,22 @@ void VulkanManager::run()
 
     vkGraphicsPipeline.createSyncObjects(vkd.getDevice());
 
+    VertexBuffer vertexBuffer;
+
+    vertexBuffer.createVertexBuffer(vkd.getDevice());
+    vertexBuffer.memoryAllocation(vkd.getDevice(), vkd.getPhysicalDevice());
+    vertexBuffer.fillVertexBuffer(vkd.getDevice());
+
     while (!glfwWindowShouldClose(&vk.getWindow())) 
     {
         glfwPollEvents();
-        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk);
+        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk,vertexBuffer.vertexBuffer);
     }
 
     vkDeviceWaitIdle(vkd.getDevice());
 
+    vkDestroyBuffer(vkd.getDevice(), vertexBuffer.vertexBuffer, nullptr);
+    vkFreeMemory(vkd.getDevice(), vertexBuffer.vertexBufferMemory, nullptr);
     cleanUp();
 }
 
