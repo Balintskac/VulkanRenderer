@@ -8,11 +8,15 @@
 #include <stdexcept>
 #include "vulkanWindow.h"
 #include "structureTypes.h"
+#include <chrono>
+
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 class VulkanGraphicsPipeline
 {
 private:
-    VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
 public:
@@ -48,16 +52,22 @@ public:
         return buffer;
     };
 
-    void createGraphicsPipeline(const VkDevice& device);
+    void createGraphicsPipeline(const VkDevice& device, VkPipelineLayout& pipelineLayout);
 
     void createRenderPass(const VkDevice& device, const VkFormat& swapChainImageFormat);
 
     void createSyncObjects(const VkDevice& device);
 
     void drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
-        VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer);
+        VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer,
+        const VkBuffer& indexBuffer, 
+        void* uniformBuffersMapped,
+        VkPipelineLayout& pipelineLayout,
+        VkDescriptorSet& descriptorSets);
 
     void recreateSwapChain(const VkDevice& device, const VulkanWindow& window);
   
     VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char>& code);
+
+    void updateUniformBuffer(void* uniformBuffersMapped, const uint32_t& width, const uint32_t& height);
 };

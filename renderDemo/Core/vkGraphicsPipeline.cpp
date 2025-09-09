@@ -1,6 +1,6 @@
 #include "VulkanGraphicsPipeline.h"
 
-void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device)
+void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device, VkPipelineLayout& pipelineLayout)
 {
     auto vertShaderCode = readFile("shaders/vert.spv");
     auto fragShaderCode = readFile("shaders/frag.spv");
@@ -49,7 +49,8 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device)
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    //rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -80,15 +81,6 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device)
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -178,7 +170,9 @@ void VulkanGraphicsPipeline::createSyncObjects(const VkDevice& device)
 }
 
 void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
-    VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer)
+    VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer,
+    void* uniformBuffersMapped, VkPipelineLayout& pipelineLayout,
+    VkDescriptorSet& descriptorSets)
 {
     auto& device = deviceManager.getDevice();
 
@@ -198,16 +192,22 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
+    updateUniformBuffer(uniformBuffersMapped, swapChain.swapChainExtent.width, swapChain.swapChainExtent.height);
+    
     vkResetFences(device, 1, &inFlightFence);
 
     vkResetCommandBuffer(vkCmdBuffer.commandBuffer, 0);
 
-    vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer, imageIndex, renderPass, 
-        swapChain, graphicsPipeline, vertexBuffer, indexBuffer);
+    vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer,
+        imageIndex, renderPass, 
+        swapChain, graphicsPipeline,
+        vertexBuffer, indexBuffer, 
+        pipelineLayout, descriptorSets);
 
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -287,4 +287,23 @@ VkShaderModule VulkanGraphicsPipeline::createShaderModule(const VkDevice& device
     }
 
     return shaderModule;
+}
+
+void VulkanGraphicsPipeline::updateUniformBuffer(void* uniformBuffersMapped, const uint32_t& width, const uint32_t& height)
+{
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    UniformBufferObject ubo{};
+    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = glm::perspective(glm::radians(45.0f),
+        width / (float)height,
+        0.1f, 10.0f);
+
+    ubo.proj[1][1] *= -1;
+
+    memcpy(uniformBuffersMapped, &ubo, sizeof(ubo));
 }

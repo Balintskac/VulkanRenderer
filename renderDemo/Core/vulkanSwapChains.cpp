@@ -50,6 +50,7 @@ void VulkanSwapChain::createSwapChain(VkPhysicalDevice p_device, VkSurfaceKHR su
     vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
     std::cout << "image count: " << imageCount << std::endl;
+    std::cout << "swap chain image count: " << swapChainImages.size() << std::endl;
     vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
 
     swapChainImageFormat = surfaceFormat.format;

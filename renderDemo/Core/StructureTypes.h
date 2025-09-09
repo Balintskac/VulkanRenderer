@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan_core.h>
 #include <glm/common.hpp>
+#include <glm/mat4x4.hpp>
 #include <array>
 
 struct Vertex {
@@ -32,4 +33,11 @@ struct Vertex {
 
         return attributeDescriptions;
     }
+};
+
+struct UniformBufferObject 
+{
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
 };

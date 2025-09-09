@@ -143,7 +143,22 @@ void VulkanManager::run()
     VulkanGraphicsPipeline vkGraphicsPipeline;
 
     vkGraphicsPipeline.createRenderPass(vkd.getDevice(), vkSpawnChain.swapChainImageFormat);
-    vkGraphicsPipeline.createGraphicsPipeline(vkd.getDevice());
+   
+   
+    VertexBuffer vertexBuffer;
+
+    vertexBuffer.createUniformBuffers(vkd.getDevice(), vkd.getPhysicalDevice());
+
+    vertexBuffer.createDescriptorSetLayout(vkd.getDevice());
+    vkGraphicsPipeline.createGraphicsPipeline(vkd.getDevice(), vertexBuffer.pipelineLayout);
+
+    vertexBuffer.createVertexBuffer(vkd.getDevice());
+    vertexBuffer.memoryAllocation(vkd.getDevice(), vkd.getPhysicalDevice());
+    vertexBuffer.fillVertexBuffer(vkd.getDevice());
+
+    vertexBuffer.createIndexBuffer(vkd.getDevice(), vkd.getPhysicalDevice());
+    vertexBuffer.createDescriptorPool(vkd.getDevice());
+    vertexBuffer.createDescriptorSets(vkd.getDevice());
 
     vkSpawnChain.createFramebuffers(vkGraphicsPipeline.renderPass);
 
@@ -155,19 +170,14 @@ void VulkanManager::run()
 
     vkGraphicsPipeline.createSyncObjects(vkd.getDevice());
 
-    VertexBuffer vertexBuffer;
-
-    vertexBuffer.createVertexBuffer(vkd.getDevice());
-    vertexBuffer.memoryAllocation(vkd.getDevice(), vkd.getPhysicalDevice());
-    vertexBuffer.fillVertexBuffer(vkd.getDevice());
-
-    vertexBuffer.createIndexBuffer(vkd.getDevice(), vkd.getPhysicalDevice());
 
     while (!glfwWindowShouldClose(&vk.getWindow())) 
     {
         glfwPollEvents();
         vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk,
-            vertexBuffer.vertexBuffer, vertexBuffer.indexBuffer);
+            vertexBuffer.vertexBuffer, vertexBuffer.indexBuffer, 
+            vertexBuffer.uniformBuffersMapped,
+            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets);
     }
 
     vkDeviceWaitIdle(vkd.getDevice());

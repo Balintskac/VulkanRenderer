@@ -30,7 +30,9 @@ void VulkanCommandBuffer::createCommandBuffer(const VkDevice& device)
 
 void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, 
     uint32_t imageIndex, VkRenderPass renderPass, VulkanSwapChain& vulkanSwapChain,
-    VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer)
+    VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer, 
+    const VkBuffer& indexBuffer, VkPipelineLayout& pipelineLayout,
+    VkDescriptorSet& descriptorSets)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -74,8 +76,12 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
     scissor.extent = vulkanSwapChain.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-
-   // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    vkCmdBindDescriptorSets(commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        pipelineLayout, 0, 1,
+        &descriptorSets, 0, nullptr);
+   
+    // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
   //  vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
     vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
 

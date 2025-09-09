@@ -24,5 +24,7 @@ public:
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer,
         uint32_t imageIndex, VkRenderPass renderPass, VulkanSwapChain& VulkanSwapChain,
-        VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer);
+        VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer,
+        const VkBuffer& indexBuffer, VkPipelineLayout& pipelineLayout,
+        VkDescriptorSet& descriptorSets);
 };
