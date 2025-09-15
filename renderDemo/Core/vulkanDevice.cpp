@@ -3,6 +3,10 @@
 #include "vulkanManager.h"
 #include <set>
 
+
+VkQueue VulkanDevice::graphicsQueue = VK_NULL_HANDLE;
+
+
 void VulkanDevice::pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
 {
     uint32_t deviceCount = 0;
@@ -32,8 +36,13 @@ bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surfac
     QueueFamilyIndices indices = VulkanQueue::findQueueFamilies(device,  surface);
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
 
+    VkPhysicalDeviceFeatures supportedFeatures;
+
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+
     return indices.isComplete() && checkDeviceExtensionSupport(device)
-        && !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+        && !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty() 
+        && supportedFeatures.samplerAnisotropy;
 }
 
 void VulkanDevice::createLogicalDevice(VkSurfaceKHR surface)
@@ -71,7 +80,7 @@ void VulkanDevice::createLogicalDevice(VkSurfaceKHR surface)
         throw std::runtime_error("failed to create logical device!");
     }
 
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &VulkanDevice::graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 

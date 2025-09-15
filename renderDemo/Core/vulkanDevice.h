@@ -15,7 +15,7 @@ private:
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 public:
-	VkQueue graphicsQueue;
+	static VkQueue graphicsQueue;
 	VkQueue presentQueue;
 	VulkanDevice() = default;
 
@@ -30,6 +30,8 @@ public:
 	bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 	void createLogicalDevice(VkSurfaceKHR surface);
+
+	static VkQueue& getGraphicsQueue(){ return graphicsQueue; }
 
     inline VkDevice& getDevice() const { return const_cast<VkDevice&>(device); }
 

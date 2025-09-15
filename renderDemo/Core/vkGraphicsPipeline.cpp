@@ -1,12 +1,12 @@
 #include "VulkanGraphicsPipeline.h"
 
-void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device, VkPipelineLayout& pipelineLayout)
+void VulkanGraphicsPipeline::createGraphicsPipeline(VkPipelineLayout& pipelineLayout)
 {
     auto vertShaderCode = readFile("shaders/vert.spv");
     auto fragShaderCode = readFile("shaders/frag.spv");
 
-    VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
+    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -27,9 +27,9 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device, VkPi
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescription.size());
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -106,7 +106,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VkDevice& device, VkPi
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 
-void VulkanGraphicsPipeline::createRenderPass(const VkDevice& device, const VkFormat& swapChainImageFormat)
+void VulkanGraphicsPipeline::createRenderPass( const VkFormat& swapChainImageFormat)
 {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
@@ -149,7 +149,7 @@ void VulkanGraphicsPipeline::createRenderPass(const VkDevice& device, const VkFo
     }
 }
 
-void VulkanGraphicsPipeline::createSyncObjects(const VkDevice& device)
+void VulkanGraphicsPipeline::createSyncObjects()
 {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -172,7 +172,7 @@ void VulkanGraphicsPipeline::createSyncObjects(const VkDevice& device)
 void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
     VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer,
     void* uniformBuffersMapped, VkPipelineLayout& pipelineLayout,
-    VkDescriptorSet& descriptorSets)
+    VkDescriptorSet& descriptorSets, const VkBuffer& instanceBuffer)
 {
     auto& device = deviceManager.getDevice();
 
@@ -185,7 +185,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) 
     {
-        recreateSwapChain(device, window);
+        recreateSwapChain(window);
         return;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -202,7 +202,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
         imageIndex, renderPass, 
         swapChain, graphicsPipeline,
         vertexBuffer, indexBuffer, 
-        pipelineLayout, descriptorSets);
+        pipelineLayout, descriptorSets, instanceBuffer);
 
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
@@ -223,7 +223,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
 
 
     // when no need for fence, just leave it NULL
-    if (vkQueueSubmit(deviceManager.graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+    if (vkQueueSubmit(VulkanDevice::graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -246,7 +246,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.framebufferResized) 
     {
         window.framebufferResized = false;
-        recreateSwapChain(device, window);
+        recreateSwapChain(window);
         vkDeviceWaitIdle(device);
 
         swapChain.~VulkanSwapChain();
@@ -262,7 +262,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
     }
 }
 
-void VulkanGraphicsPipeline::recreateSwapChain(const VkDevice& device, const VulkanWindow& window)
+void VulkanGraphicsPipeline::recreateSwapChain(const VulkanWindow& window)
 {
     int width = 0, height = 0;
     glfwGetFramebufferSize(&window.getWindow(), &width, &height);
@@ -274,7 +274,7 @@ void VulkanGraphicsPipeline::recreateSwapChain(const VkDevice& device, const Vul
     vkDeviceWaitIdle(device);
 }
 
-VkShaderModule VulkanGraphicsPipeline::createShaderModule(const VkDevice& device, const std::vector<char>& code)
+VkShaderModule VulkanGraphicsPipeline::createShaderModule(const std::vector<char>& code)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -298,10 +298,10 @@ void VulkanGraphicsPipeline::updateUniformBuffer(void* uniformBuffersMapped, con
 
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(-8.0f, -8.0f, 8.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f),
         width / (float)height,
-        0.1f, 10.0f);
+        0.1f, 100.0f);
 
     ubo.proj[1][1] *= -1;
 

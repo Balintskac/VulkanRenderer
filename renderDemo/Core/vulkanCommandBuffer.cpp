@@ -1,8 +1,8 @@
 #pragma once
 #include "vulkanCommandBuffer.h"
+#include "StructureTypes.h"
 
-void VulkanCommandBuffer::createCommandPool(const VkDevice& device,
-    const QueueFamilyIndices& queueFamilyIndices) {
+void VulkanCommandBuffer::createCommandPool(const QueueFamilyIndices& queueFamilyIndices) {
     
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -14,7 +14,7 @@ void VulkanCommandBuffer::createCommandPool(const VkDevice& device,
     }
 }
 
-void VulkanCommandBuffer::createCommandBuffer(const VkDevice& device)
+void VulkanCommandBuffer::createCommandBuffer()
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -32,7 +32,7 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
     uint32_t imageIndex, VkRenderPass renderPass, VulkanSwapChain& vulkanSwapChain,
     VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer, 
     const VkBuffer& indexBuffer, VkPipelineLayout& pipelineLayout,
-    VkDescriptorSet& descriptorSets)
+    VkDescriptorSet& descriptorSets, const VkBuffer& instanceBuffer)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -56,10 +56,13 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    VkDeviceSize vertexBufferSize = sizeof(Vertex) * 4;
 
-    VkBuffer vertexBuffers[] = { vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    VkDeviceSize offsets[2] = { 0, vertexBufferSize };
+    VkBuffer buffers[2] = { vertexBuffer, vertexBuffer }; // ugyanaz a buffer kétszer
+   // VkBuffer vertexBuffers[] = { vertexBuffer };
+   // VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 2, buffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     VkViewport viewport{};
@@ -81,9 +84,10 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
         pipelineLayout, 0, 1,
         &descriptorSets, 0, nullptr);
    
+
     // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
   //  vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-    vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, 6, 100, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -91,3 +95,5 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
         throw std::runtime_error("failed to record command buffer!");
     }
 }
+
+

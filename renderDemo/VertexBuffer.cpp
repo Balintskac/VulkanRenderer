@@ -2,8 +2,21 @@
 
 void VertexBuffer::createVertexBuffer(const VkDevice& device)
 {
+
+    instances.resize(100);
+
+    for (size_t i = 0; i < instances.size(); i++) {
+        float x = (i % 10) * 2.0f;    
+        float y = (i / 10) * 2.0f;    
+        instances[i].offset = glm::vec3(x, y, 0.0f);
+    }
+
+    VkDeviceSize vertexBufferSize = sizeof(Vertex) * vertices.size();
+    VkDeviceSize instanceBufferSize = sizeof(InstanceData) * instances.size();
+    VkDeviceSize totalSize = vertexBufferSize + instanceBufferSize;
+
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+    bufferInfo.size = totalSize;// sizeof(vertices[0]) * vertices.size();
     bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -44,9 +57,16 @@ uint32_t VertexBuffer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 
 void VertexBuffer::fillVertexBuffer(const VkDevice& device)
 {
+    VkDeviceSize vertexBufferSize = sizeof(Vertex) * vertices.size();
+    VkDeviceSize instanceBufferSize = sizeof(InstanceData) * instances.size();
+    VkDeviceSize totalSize = vertexBufferSize + instanceBufferSize;
     void* data;
-    vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+    vkMapMemory(device, vertexBufferMemory, 0, totalSize, 0, &data);
+
+    memcpy(data, vertices.data(), (size_t)vertexBufferSize);
+
+    memcpy((char*)data + vertexBufferSize, instances.data(), (size_t)instanceBufferSize);
+
     vkUnmapMemory(device, vertexBufferMemory);
 }
 
@@ -109,10 +129,20 @@ void VertexBuffer::createDescriptorSetLayout(const VkDevice& device)
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
+
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+   
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
 
     if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
@@ -139,7 +169,7 @@ void VertexBuffer::createUniformBuffers(const VkDevice& device, const VkPhysical
         uniformBuffers, uniformBuffersMemory);
   
     vkMapMemory(device, uniformBuffersMemory, 0, bufferSize, 0, &uniformBuffersMapped);
-  //  vkUnmapMemory(device, uniformBuffersMemory);
+    vkUnmapMemory(device, uniformBuffersMemory);
 }
 
 void VertexBuffer::createBuffer(const VkDevice& device, 
@@ -177,14 +207,17 @@ void VertexBuffer::createBuffer(const VkDevice& device,
 
 void VertexBuffer::createDescriptorPool(const VkDevice& device)
 {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = 3;
-   
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = 3;
+
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[1].descriptorCount = 3;
+
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 3;
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
@@ -210,19 +243,30 @@ void VertexBuffer::createDescriptorSets(const VkDevice& device)
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = descriptorSets;
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = VulkanTextureManager::textureImageView;
+    imageInfo.sampler = VulkanTextureManager::textureSampler;
 
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
-    descriptorWrite.pImageInfo = nullptr; // Optional
-    descriptorWrite.pTexelBufferView = nullptr; // Optional
-   
-    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = descriptorSets;
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = descriptorSets;
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 
 }
 

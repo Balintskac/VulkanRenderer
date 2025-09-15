@@ -45,6 +45,9 @@
     <ClCompile Include="UniformBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkanTextureManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="frag.spv">
@@ -90,6 +93,12 @@
       <Filter>Resource Files</Filter>
     </ClInclude>
     <ClInclude Include="UniformBuffer.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkanTextureManager.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferManager.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
   </ItemGroup>

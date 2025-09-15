@@ -4,6 +4,8 @@
 #include "VulkanGraphicsPipeline.h"
 #include "vulkanCommandBuffer.h"
 #include "../VertexBuffer.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 std::vector<const char*> VulkanManager::getRequiredExtensions()
 {
@@ -18,6 +20,16 @@ std::vector<const char*> VulkanManager::getRequiredExtensions()
     }
 
     return extensions;
+}
+
+void createTextureImage() {
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
 }
 
 bool VulkanManager::checkValidationLayerSupport()
@@ -52,7 +64,7 @@ VkApplicationInfo VulkanManager::createAppInfo()
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pApplicationName = "Test render",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "No Engine",
+        .pEngineName = "R-Engine",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
         .apiVersion = VK_API_VERSION_1_0
     };
@@ -123,70 +135,77 @@ void VulkanManager::setupDebugMessenger()
 
 void VulkanManager::run()
 {
-    VulkanWindow vk;
-    vk.createWindow();
+    VulkanWindow vulkanWindow;
+    vulkanWindow.createWindow();
 
     createInstance();
-    vk.createSurface(instance);
+    vulkanWindow.createSurface(instance);
 
     setupDebugMessenger();
 
     VulkanDevice vkd;
-    vkd.pickPhysicalDevice(instance, vk.getSurface());
-    vkd.createLogicalDevice(vk.getSurface());
+    vkd.pickPhysicalDevice(instance, vulkanWindow.getSurface());
+    vkd.createLogicalDevice(vulkanWindow.getSurface());
 
-    VulkanSwapChain vkSpawnChain(vkd.getDevice());
+    auto& device = vkd.getDevice();
 
-    vkSpawnChain.createSwapChain(vkd.getPhysicalDevice(), vk.getSurface(), &vk.getWindow());
+    VulkanSwapChain vkSpawnChain(device);
+
+    vkSpawnChain.createSwapChain(vkd.getPhysicalDevice(), vulkanWindow.getSurface(), &vulkanWindow.getWindow());
     vkSpawnChain.createImageViews();
 
-    VulkanGraphicsPipeline vkGraphicsPipeline;
+    VulkanGraphicsPipeline vkGraphicsPipeline(device);
 
-    vkGraphicsPipeline.createRenderPass(vkd.getDevice(), vkSpawnChain.swapChainImageFormat);
-   
+    vkGraphicsPipeline.createRenderPass(vkSpawnChain.swapChainImageFormat);
+
+    VulkanCommandBuffer vkCmdBuffer(device);
+    auto queue = VulkanQueue::findQueueFamilies(vkd.getPhysicalDevice(), vulkanWindow.getSurface());
+    vkCmdBuffer.createCommandPool(queue);
+    vkCmdBuffer.createCommandBuffer();
+
+    VulkanTextureManager textureManager(device, vkd.getPhysicalDevice(), vkCmdBuffer.commandPool);
+    textureManager.createTextureImage();
+    textureManager.createTextureImageView();
+    textureManager.createTextureSampler();
    
     VertexBuffer vertexBuffer;
 
-    vertexBuffer.createUniformBuffers(vkd.getDevice(), vkd.getPhysicalDevice());
+    vertexBuffer.createUniformBuffers(device, vkd.getPhysicalDevice());
 
-    vertexBuffer.createDescriptorSetLayout(vkd.getDevice());
-    vkGraphicsPipeline.createGraphicsPipeline(vkd.getDevice(), vertexBuffer.pipelineLayout);
+    vertexBuffer.createDescriptorSetLayout(device);
+    vkGraphicsPipeline.createGraphicsPipeline(vertexBuffer.pipelineLayout);
 
-    vertexBuffer.createVertexBuffer(vkd.getDevice());
-    vertexBuffer.memoryAllocation(vkd.getDevice(), vkd.getPhysicalDevice());
-    vertexBuffer.fillVertexBuffer(vkd.getDevice());
+    vertexBuffer.createVertexBuffer(device);
+    vertexBuffer.memoryAllocation(device, vkd.getPhysicalDevice());
+    vertexBuffer.fillVertexBuffer(device);
 
-    vertexBuffer.createIndexBuffer(vkd.getDevice(), vkd.getPhysicalDevice());
-    vertexBuffer.createDescriptorPool(vkd.getDevice());
-    vertexBuffer.createDescriptorSets(vkd.getDevice());
+    vertexBuffer.createIndexBuffer(device, vkd.getPhysicalDevice());
+    vertexBuffer.createDescriptorPool(device);
+    vertexBuffer.createDescriptorSets(device);
 
     vkSpawnChain.createFramebuffers(vkGraphicsPipeline.renderPass);
 
-    VulkanCommandBuffer vkCmdBuffer;
-
-    auto queue = VulkanQueue::findQueueFamilies(vkd.getPhysicalDevice(), vk.getSurface());
-    vkCmdBuffer.createCommandPool(vkd.getDevice(), queue);
-    vkCmdBuffer.createCommandBuffer(vkd.getDevice());
-
-    vkGraphicsPipeline.createSyncObjects(vkd.getDevice());
 
 
-    while (!glfwWindowShouldClose(&vk.getWindow())) 
+    vkGraphicsPipeline.createSyncObjects();
+
+
+    while (!glfwWindowShouldClose(&vulkanWindow.getWindow()))
     {
         glfwPollEvents();
-        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vk,
+        vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vulkanWindow,
             vertexBuffer.vertexBuffer, vertexBuffer.indexBuffer, 
             vertexBuffer.uniformBuffersMapped,
-            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets);
+            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets, vertexBuffer.vertexBuffer);
     }
 
-    vkDeviceWaitIdle(vkd.getDevice());
+    vkDeviceWaitIdle(device);
 
-    vkDestroyBuffer(vkd.getDevice(), vertexBuffer.indexBuffer, nullptr);
-    vkFreeMemory(vkd.getDevice(), vertexBuffer.indexBufferMemory, nullptr);
+    vkDestroyBuffer(device, vertexBuffer.indexBuffer, nullptr);
+    vkFreeMemory(device, vertexBuffer.indexBufferMemory, nullptr);
 
-    vkDestroyBuffer(vkd.getDevice(), vertexBuffer.vertexBuffer, nullptr);
-    vkFreeMemory(vkd.getDevice(), vertexBuffer.vertexBufferMemory, nullptr);
+    vkDestroyBuffer(device, vertexBuffer.vertexBuffer, nullptr);
+    vkFreeMemory(device, vertexBuffer.vertexBufferMemory, nullptr);
     cleanUp();
 }
 

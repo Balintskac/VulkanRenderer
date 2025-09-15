@@ -20,9 +20,7 @@ public:
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	VkFormat swapChainImageFormat;
 
-	VulkanSwapChain(VkDevice& device) : device(device)
-	{
-	}
+	VulkanSwapChain(const VkDevice& device) : device(device){}
 
 	~VulkanSwapChain() 
 	{
@@ -43,5 +41,7 @@ public:
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
+
+	VkImageView createImageView(VkImage image, VkFormat format);
 
 };

@@ -6,6 +6,7 @@
 #include <glm/mat4x4.hpp>
 #include <stdexcept>
 #include "Core/StructureTypes.h"
+#include "vulkanTextureManager.h"
 
 class VertexBuffer 
 {
@@ -34,14 +35,17 @@ public:
     struct Vertex {
         glm::vec2 pos;
         glm::vec3 color;
+        glm::vec2 tex;
     };
 
     const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.2f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.5f}},
-        {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.2f, 0.0f},{ 1.0f, 0.0f }},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.5f}, {0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}, { 0.0f, 1.0f }},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 1.0f }}
     };
+
+    std::vector<InstanceData> instances;
 
     const std::vector<uint16_t> indices = {
       0, 1, 2, 2, 3, 0
@@ -69,5 +73,4 @@ public:
     void createDescriptorPool(const VkDevice& device);
   
     void createDescriptorSets(const VkDevice& device);
-
 };
