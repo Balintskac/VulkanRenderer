@@ -113,7 +113,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\repok\source\repos\Rengine\Dependencies\glm;D:\repok\source\repos\Rengine\Dependencies\GLFW\include;X:\Programok\VulkanSDK\Include\;D:\repok\source\repos\renderDemo\3rd party\stb</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\repok\source\repos\Rengine\Dependencies\glm;D:\repok\source\repos\Rengine\Dependencies\GLFW\include;X:\Programok\VulkanSDK\Include\;D:\repok\source\repos\renderDemo\3rd party\stb;D:\repok\source\repos\renderDemo\3rd party\tinyobjloader</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -131,7 +131,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\repok\source\repos\Rengine\Dependencies\glm;D:\repok\source\repos\Rengine\Dependencies\GLFW\include;X:\Programok\VulkanSDK\Include\;D:\repok\source\repos\renderDemo\3rd party\stb</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\repok\source\repos\Rengine\Dependencies\glm;D:\repok\source\repos\Rengine\Dependencies\GLFW\include;X:\Programok\VulkanSDK\Include\;D:\repok\source\repos\renderDemo\3rd party\stb;D:\repok\source\repos\renderDemo\3rd party\tinyobjloader</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -151,6 +151,7 @@
     <ClCompile Include="Core\vulkanManager.cpp" />
     <ClCompile Include="Core\vulkanQueue.cpp" />
     <ClCompile Include="Core\vulkanSwapChains.cpp" />
+    <ClCompile Include="modelLoader.cpp" />
     <ClCompile Include="UniformBuffer.cpp" />
     <ClCompile Include="VertexBuffer.cpp" />
     <ClCompile Include="vulkanTextureManager.cpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="Core\vulkanQueue.h" />
     <ClInclude Include="Core\vulkanSwapChains.h" />
     <ClInclude Include="Core\vulkanWindow.h" />
+    <ClInclude Include="modelLoader.h" />
     <ClInclude Include="vulkanTextureManager.h" />
     <ClInclude Include="UniformBuffer.h" />
     <ClInclude Include="VertexBuffer.h" />

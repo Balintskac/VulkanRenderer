@@ -9,31 +9,31 @@ struct InstanceData {
 };
 
 struct Vertex {
-    glm::vec2 pos;
+    glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
 
-    static std::array<VkVertexInputBindingDescription, 2> getBindingDescription() {
-        std::array<VkVertexInputBindingDescription, 2> bindingDescription = {};
+    static std::array<VkVertexInputBindingDescription, 1> getBindingDescription() {
+        std::array<VkVertexInputBindingDescription, 1> bindingDescription = {};
 
         bindingDescription[0].binding = 0;
         bindingDescription[0].stride = sizeof(Vertex);
         bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         // 1. binding = instance
-        bindingDescription[1].binding = 1;
-        bindingDescription[1].stride = sizeof(InstanceData);
-        bindingDescription[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+     //   bindingDescription[1].binding = 1;
+     //   bindingDescription[1].stride = sizeof(InstanceData);
+     //   bindingDescription[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
         attributeDescriptions[1].binding = 0;
@@ -47,10 +47,10 @@ struct Vertex {
         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
         // instance offset
-        attributeDescriptions[3].binding = 1;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[3].offset = offsetof(InstanceData, offset);
+     //   attributeDescriptions[3].binding = 1;
+     //   attributeDescriptions[3].location = 3;
+     //   attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+     //   attributeDescriptions[3].offset = offsetof(InstanceData, offset);
 
         return attributeDescriptions;
     }

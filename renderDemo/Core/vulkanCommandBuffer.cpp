@@ -56,14 +56,15 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    VkDeviceSize vertexBufferSize = sizeof(Vertex) * 4;
+   // VkDeviceSize vertexBufferSize = sizeof(Vertex) * 4;
 
-    VkDeviceSize offsets[2] = { 0, vertexBufferSize };
-    VkBuffer buffers[2] = { vertexBuffer, vertexBuffer }; // ugyanaz a buffer kétszer
-   // VkBuffer vertexBuffers[] = { vertexBuffer };
-   // VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 2, buffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+   // VkDeviceSize offsets[2] = { 0, vertexBufferSize };
+  //  VkBuffer buffers[2] = { vertexBuffer, vertexBuffer }; // ugyanaz a buffer kétszer
+    VkBuffer vertexBuffers[] = { vertexBuffer };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    // For the model 32
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -87,7 +88,7 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
     // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
   //  vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-    vkCmdDrawIndexed(commandBuffer, 6, 100, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, 11484, 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

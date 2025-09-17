@@ -1,9 +1,18 @@
 #pragma once
+
+
 #include <vulkan/vulkan_core.h>
 #include <stdexcept>
 #include <stb_image.h>
 #include "Core/vulkanDevice.h"
 #include "BufferManager.h"
+
+struct Texture {
+	VkImage image;
+	VkDeviceMemory memory;
+	VkImageView imageView;
+	VkSampler sampler;
+};
 
 class VulkanTextureManager 
 {
@@ -20,6 +29,8 @@ private:
 	VkDeviceMemory stagingBufferMemory;
 
 	VkCommandPool commandPool;
+
+	std::vector<Texture> textures; // 50 textúra Sponza-hoz
 
 public:
 	static VkImageView textureImageView;

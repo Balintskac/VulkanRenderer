@@ -7,6 +7,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "../modelLoader.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
+
+
 std::vector<const char*> VulkanManager::getRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
@@ -20,16 +26,6 @@ std::vector<const char*> VulkanManager::getRequiredExtensions()
     }
 
     return extensions;
-}
-
-void createTextureImage() {
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
-
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
-    }
 }
 
 bool VulkanManager::checkValidationLayerSupport()
@@ -185,6 +181,10 @@ void VulkanManager::run()
 
     vkSpawnChain.createFramebuffers(vkGraphicsPipeline.renderPass);
 
+    ModelLoader model(device, vkd.getPhysicalDevice());
+    model.loadModel();
+    model.createsVertexBuffer();
+    model.createsIndexBuffer();
 
 
     vkGraphicsPipeline.createSyncObjects();
@@ -194,9 +194,9 @@ void VulkanManager::run()
     {
         glfwPollEvents();
         vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vulkanWindow,
-            vertexBuffer.vertexBuffer, vertexBuffer.indexBuffer, 
+            model.vertexBuffer, model.indexBuffer,
             vertexBuffer.uniformBuffersMapped,
-            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets, vertexBuffer.vertexBuffer);
+            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets, model.vertexBuffer);
     }
 
     vkDeviceWaitIdle(device);
