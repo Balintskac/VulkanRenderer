@@ -12,6 +12,7 @@ struct VertexModel {
 	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 tex;
+	int32_t texIndex;
 };
 
 class ModelLoader

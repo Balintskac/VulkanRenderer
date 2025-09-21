@@ -8,28 +8,49 @@ void ModelLoader::loadModel()
     std::vector<tinyobj::material_t> materials;
     std::string err;
 
-    const std::string MODEL_PATH = "models/viking_room.obj"; //"models/sponza/sponza.obj";
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, nullptr, &err, MODEL_PATH.c_str()))
+    const std::string MODEL_PATH = "models/sponza/sponza.obj";
+    const std::string BASE_PATH = "models/sponza/";
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, nullptr, &err, MODEL_PATH.c_str(), BASE_PATH.c_str()))
     {
         throw std::runtime_error(err);
     }
 
-    for (const auto& shape : shapes) {
-        for (const auto& index : shape.mesh.indices) {
-            VertexModel vertex{};
+    size_t tex_index = 0;
 
+    size_t globalIndex = 0;
+    for (const auto& shape : shapes) {
+
+        const auto& mesh = shape.mesh;
+        // Végigmegyünk minden polygonon (face)
+        for (size_t i = 0; i < mesh.indices.size(); ++i) {
+            const auto& index = mesh.indices[i];
+
+
+            //if (material_id < 0) material_id = 0;        // ha nincs material
+
+            VertexModel vertex{};
             vertex.pos = {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            vertex.tex = {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                attrib.texcoords[2 * index.texcoord_index + 1]
-            };
+            if (index.texcoord_index >= 0) {
+                vertex.tex = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+            }
 
             vertex.color = { 1.0f, 1.0f, 1.0f };
+
+            // Face index meghatározása
+            size_t faceIndex = i / 3;
+
+            if (i / 3 < mesh.material_ids.size())
+                vertex.texIndex = mesh.material_ids[faceIndex] >= 0? mesh.material_ids[faceIndex] : 0; // vagy textúra ID táblából név/útvonal alapján
+
+            // Push vertex
             vertices.push_back(vertex);
             indices.push_back(indices.size());
         }

@@ -80,15 +80,29 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
     scissor.extent = vulkanSwapChain.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+   
     vkCmdBindDescriptorSets(commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS, 
         pipelineLayout, 0, 1,
         &descriptorSets, 0, nullptr);
-   
 
+    /*
+    for (int i = 0; i < 54; ++i) {
+        vkCmdPushConstants(
+            commandBuffer,
+            pipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            sizeof(int),
+            &i
+        );
+
+    }
+    */
     // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
   //  vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-    vkCmdDrawIndexed(commandBuffer, 11484, 1, 0, 0, 0);
+
+    vkCmdDrawIndexed(commandBuffer, 786801, 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

@@ -18,6 +18,7 @@ private:
 public:
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSets;
+    std::vector<VkWriteDescriptorSet> descriptorWrites;
 
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
@@ -78,5 +79,5 @@ public:
 
     void createDescriptorPool(const VkDevice& device);
   
-    void createDescriptorSets(const VkDevice& device);
+    void createDescriptorSets(const VkDevice& device, const std::vector<Texture>& textures);
 };

@@ -30,9 +30,9 @@ private:
 
 	VkCommandPool commandPool;
 
-	std::vector<Texture> textures; // 50 textúra Sponza-hoz
 
 public:
+	std::vector<Texture> textures; // 50 textúra Sponza-hoz
 	static VkImageView textureImageView;
 	static VkSampler textureSampler;
 

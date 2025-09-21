@@ -1,38 +1,97 @@
-#include "vulkanTextureManager.h"
+﻿#include "vulkanTextureManager.h"
+#include <filesystem>
+#include <iostream>
+namespace fs = std::filesystem;
 
 VkImageView VulkanTextureManager::textureImageView = VK_NULL_HANDLE;
 VkSampler VulkanTextureManager::textureSampler = VK_NULL_HANDLE;
 void VulkanTextureManager::createTextureImage()
 {
-    stbi_uc* pixels = stbi_load("models/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+   // stbi_uc* pixels = stbi_load("models/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+   // VkDeviceSize imageSize = texWidth * texHeight * 4;
+    std::vector<std::string> textureFiles;
 
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
+    // összes fájl összegyűjtése
+    for (const auto& entry : fs::directory_iterator("models/sponza/textures")) {
+        if (entry.is_regular_file()) {
+            textureFiles.push_back(entry.path().string());
+        }
     }
 
-    BufferManager::creatingBuffer(device, physicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    std::vector<VkDescriptorImageInfo> imageInfos(54);
+    textures.resize(textureFiles.size());
 
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    for (size_t i = 0; i < 54; i++) {
+        int texWidth, texHeight, texChannels;
+        stbi_uc* pixels = stbi_load(textureFiles[i].c_str(),
+            &texWidth, &texHeight,
+            &texChannels, STBI_rgb_alpha);
+        if (!pixels) {
+            throw std::runtime_error("failed to load texture: " + textureFiles[i]);
+        }
 
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-    createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        // staging buffer létrehozás + feltöltés
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        BufferManager::creatingBuffer(device, physicalDevice,imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer, stagingBufferMemory);
 
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        memcpy(data, pixels, static_cast<size_t>(imageSize));
+        vkUnmapMemory(device, stagingBufferMemory);
 
-    transitionImageLayout(commandBuffer, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        stbi_image_free(pixels);
 
-    copyBufferToImage(commandBuffer, stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+        // image + memory
+        createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            textures[i].image, textures[i].memory);
 
-    transitionImageLayout(commandBuffer, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        // layout váltás → buffer copy → layout váltás
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+        transitionImageLayout(commandBuffer,textures[i].image, VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+     
+        copyBufferToImage(commandBuffer, stagingBuffer, textures[i].image, texWidth, texHeight);
+      
+        transitionImageLayout(commandBuffer, textures[i].image, VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    endSingleTimeCommands(commandBuffer);
+        endSingleTimeCommands(commandBuffer);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+        // image view
+        textures[i].imageView = createImageView(textures[i].image, VK_FORMAT_R8G8B8A8_SRGB);
+
+        // sampler
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.anisotropyEnable = VK_FALSE;
+      //  samplerInfo.maxAnisotropy = 16.0f;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+        if (vkCreateSampler(device, &samplerInfo, nullptr, &textures[i].sampler) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+
+      //  std::cout << "Loaded texture " << i << ": " << textureFiles[i] << std::endl;
+    }
 
 }
 

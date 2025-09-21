@@ -161,9 +161,14 @@ void VulkanManager::run()
 
     VulkanTextureManager textureManager(device, vkd.getPhysicalDevice(), vkCmdBuffer.commandPool);
     textureManager.createTextureImage();
-    textureManager.createTextureImageView();
-    textureManager.createTextureSampler();
+  //  textureManager.createTextureImageView();
+   // textureManager.createTextureSampler();
    
+    ModelLoader model(device, vkd.getPhysicalDevice());
+    model.loadModel();
+    model.createsVertexBuffer();
+    model.createsIndexBuffer();
+
     VertexBuffer vertexBuffer;
 
     vertexBuffer.createUniformBuffers(device, vkd.getPhysicalDevice());
@@ -177,14 +182,12 @@ void VulkanManager::run()
 
     vertexBuffer.createIndexBuffer(device, vkd.getPhysicalDevice());
     vertexBuffer.createDescriptorPool(device);
-    vertexBuffer.createDescriptorSets(device);
+    vertexBuffer.createDescriptorSets(device, textureManager.textures);
+
+    
 
     vkSpawnChain.createFramebuffers(vkGraphicsPipeline.renderPass);
 
-    ModelLoader model(device, vkd.getPhysicalDevice());
-    model.loadModel();
-    model.createsVertexBuffer();
-    model.createsIndexBuffer();
 
 
     vkGraphicsPipeline.createSyncObjects();

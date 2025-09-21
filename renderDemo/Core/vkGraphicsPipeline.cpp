@@ -298,14 +298,14 @@ void VulkanGraphicsPipeline::updateUniformBuffer(void* uniformBuffersMapped, con
 
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(
-        glm::scale(glm::mat4(1.0f), glm::vec3(3, 3, 3)),
-        time * glm::radians(90.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f)
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.2, 0.2, 0.2)),
+        time * glm::radians(45.0f),
+        glm::vec3(0.0f, 1.0f, 1.0f)
     );
-    ubo.view = glm::lookAt(glm::vec3(-8.0f, -8.0f, -8.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(-30.0f, -30.0f, 20.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f),
         width / (float)height,
-        0.1f, 100.0f);
+        0.01f, 100.0f);
 
     ubo.proj[1][1] *= -1;
 

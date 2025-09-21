@@ -132,7 +132,7 @@ void VertexBuffer::createDescriptorSetLayout(const VkDevice& device)
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorCount = 54;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -148,12 +148,18 @@ void VertexBuffer::createDescriptorSetLayout(const VkDevice& device)
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 
+    /*
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(int);   // itt most csak egy int
+    */
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+  //pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
          throw std::runtime_error("failed to create pipeline layout!");
@@ -209,10 +215,10 @@ void VertexBuffer::createDescriptorPool(const VkDevice& device)
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 3;
+    poolSizes[0].descriptorCount = 1;
 
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 3;
+    poolSizes[1].descriptorCount = 54 * 3;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -225,8 +231,15 @@ void VertexBuffer::createDescriptorPool(const VkDevice& device)
     }
 }
 
-void VertexBuffer::createDescriptorSets(const VkDevice& device)
+void VertexBuffer::createDescriptorSets(const VkDevice& device, const std::vector<Texture>& textures)
 {
+    //std::vector<VkDescriptorSet> descriptorSets(1);  // Allocate space for 1 descriptor set
+
+    std::vector<VkDescriptorImageInfo> imageInfos;
+    imageInfos.reserve(54);
+
+    descriptorWrites.reserve(2);  // 1 for the uniform buffer + 54 for the textures
+
     VkDescriptorSetAllocateInfo allocInfo{};
 
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -238,33 +251,55 @@ void VertexBuffer::createDescriptorSets(const VkDevice& device)
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
+
+    // Verify each texture info
+    for (const auto& tex : textures) {
+        if (tex.imageView == VK_NULL_HANDLE || tex.sampler == VK_NULL_HANDLE) {
+            throw std::runtime_error("Invalid texture image view or sampler!");
+        }
+    }
+
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = uniformBuffers;
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = VulkanTextureManager::textureImageView;
-    imageInfo.sampler = VulkanTextureManager::textureSampler;
+    for (const auto& tex : textures) {
+        VkDescriptorImageInfo imgInfo{};
+        imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imgInfo.imageView = tex.imageView;
+        imgInfo.sampler = tex.sampler;
+    
+        imageInfos.push_back(imgInfo);
+    }
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSets;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSets;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    // First write: Uniform buffer
+    VkWriteDescriptorSet bufferWrite{};
+    bufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    bufferWrite.dstSet = descriptorSets;
+    bufferWrite.dstBinding = 0;  // Binding point for the uniform buffer
+    bufferWrite.dstArrayElement = 0;
+    bufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bufferWrite.descriptorCount = 1;
+    bufferWrite.pBufferInfo = &bufferInfo;
+
+    descriptorWrites.push_back(bufferWrite);
+
+    // Second write: 54 textures
+
+        VkWriteDescriptorSet imageWrite{};
+        imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        imageWrite.dstSet = descriptorSets;
+        imageWrite.dstBinding = 1;  // Binding point for textures
+        imageWrite.dstArrayElement = 0;  // Array element index for the texture
+        imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        imageWrite.descriptorCount = 54;
+        imageWrite.pImageInfo = imageInfos.data();
+
+        descriptorWrites.push_back(imageWrite);
+    
 
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 
