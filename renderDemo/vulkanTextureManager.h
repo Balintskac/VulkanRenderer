@@ -30,14 +30,22 @@ private:
 
 	VkCommandPool commandPool;
 
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+
 
 public:
 	std::vector<Texture> textures; // 50 textúra Sponza-hoz
 	static VkImageView textureImageView;
 	static VkSampler textureSampler;
+	static VkImageView depthImageView;
 
 	VulkanTextureManager(const VkDevice& device,
-		const VkPhysicalDevice& physicalDevice, const VkCommandPool& commandPool) : device(device), physicalDevice(physicalDevice), commandPool(commandPool){}
+		const VkPhysicalDevice& physicalDevice, 
+		const VkCommandPool& commandPool) :
+		device(device),
+		physicalDevice(physicalDevice), 
+		commandPool(commandPool){}
 
 	void createTextureImage();
 
@@ -47,7 +55,7 @@ public:
 
 	void createTextureSampler();
 
-	VkImageView createImageView(VkImage image, VkFormat format);
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
 	VkCommandBuffer beginSingleTimeCommands();
 
@@ -58,4 +66,16 @@ public:
 	void transitionImageLayout(VkCommandBuffer& commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 	void copyBufferToImage(VkCommandBuffer& commandBuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	void createDepthResources(const VkExtent2D& swapChainExtent);
+
+	VkFormat findSupportedFormat(
+		const std::vector<VkFormat>& candidates,
+		VkImageTiling tiling,
+		VkFormatFeatureFlags features
+	);
+
+	VkFormat findDepthFormat();
+
+	bool hasStencilComponent(VkFormat format);
 };

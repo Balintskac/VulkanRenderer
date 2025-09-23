@@ -6,6 +6,7 @@
 #include "vulkanDevice.h"
 #include <algorithm>
 #include <GLFW/glfw3.h>
+#include <array>
 
 class VulkanSwapChain 
 {
@@ -20,7 +21,8 @@ public:
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	VkFormat swapChainImageFormat;
 
-	VulkanSwapChain(const VkDevice& device) : device(device){}
+	VulkanSwapChain(const VkDevice& device) 
+		: device(device){}
 
 	~VulkanSwapChain() 
 	{

@@ -150,7 +150,7 @@ void VulkanManager::run()
     vkSpawnChain.createSwapChain(vkd.getPhysicalDevice(), vulkanWindow.getSurface(), &vulkanWindow.getWindow());
     vkSpawnChain.createImageViews();
 
-    VulkanGraphicsPipeline vkGraphicsPipeline(device);
+    VulkanGraphicsPipeline vkGraphicsPipeline(device, vkd.getPhysicalDevice());
 
     vkGraphicsPipeline.createRenderPass(vkSpawnChain.swapChainImageFormat);
 
@@ -160,6 +160,7 @@ void VulkanManager::run()
     vkCmdBuffer.createCommandBuffer();
 
     VulkanTextureManager textureManager(device, vkd.getPhysicalDevice(), vkCmdBuffer.commandPool);
+    textureManager.createDepthResources(vkSpawnChain.swapChainExtent);
     textureManager.createTextureImage();
   //  textureManager.createTextureImageView();
    // textureManager.createTextureSampler();
@@ -183,7 +184,6 @@ void VulkanManager::run()
     vertexBuffer.createIndexBuffer(device, vkd.getPhysicalDevice());
     vertexBuffer.createDescriptorPool(device);
     vertexBuffer.createDescriptorSets(device, textureManager.textures);
-
     
 
     vkSpawnChain.createFramebuffers(vkGraphicsPipeline.renderPass);

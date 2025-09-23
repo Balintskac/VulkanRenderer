@@ -1,5 +1,4 @@
 #include "modelLoader.h"
-#include <iostream>
 
 void ModelLoader::loadModel()
 {
@@ -18,6 +17,9 @@ void ModelLoader::loadModel()
     size_t tex_index = 0;
 
     size_t globalIndex = 0;
+
+    std::unordered_map<VertexModel, uint32_t> uniqueVertices{};
+
     for (const auto& shape : shapes) {
 
         const auto& mesh = shape.mesh;
@@ -50,14 +52,18 @@ void ModelLoader::loadModel()
             if (i / 3 < mesh.material_ids.size())
                 vertex.texIndex = mesh.material_ids[faceIndex] >= 0? mesh.material_ids[faceIndex] : 0; // vagy textúra ID táblából név/útvonal alapján
 
-            // Push vertex
-            vertices.push_back(vertex);
-            indices.push_back(indices.size());
+            if (uniqueVertices.count(vertex) == 0) {
+                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                vertices.push_back(vertex);
+            }
+
+            indices.push_back(uniqueVertices[vertex]);
         }
     }
             
     std::cout << "size of index of the model: " << vertices.size() << std::endl;
     std::cout << "size of indices of the model: " << indices.size() << std::endl;
+    std::cout << "size of unique indices of the model: " << uniqueVertices.size() << std::endl;
 
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(pyhsicalDevice, &props);

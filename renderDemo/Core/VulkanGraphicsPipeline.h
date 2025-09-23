@@ -18,6 +18,7 @@ class VulkanGraphicsPipeline
 {
 private:
     VkPipeline graphicsPipeline;
+    VkPhysicalDevice physicalDevice;
 
 public:
     VkSemaphore imageAvailableSemaphore;
@@ -26,7 +27,8 @@ public:
     VkRenderPass renderPass;
     VkDevice device;
 
-    VulkanGraphicsPipeline(const VkDevice& device) : device(device){}
+    VulkanGraphicsPipeline(const VkDevice& device, const VkPhysicalDevice& physicalDevice) 
+        :  device(device), physicalDevice(physicalDevice){}
 
     ~VulkanGraphicsPipeline() 
     {
@@ -71,4 +73,10 @@ public:
     VkShaderModule createShaderModule(const std::vector<char>& code);
 
     void updateUniformBuffer(void* uniformBuffersMapped, const uint32_t& width, const uint32_t& height);
+
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+        VkImageTiling tiling, 
+        VkFormatFeatureFlags features);
+
+    VkFormat findDepthFormat();
 };

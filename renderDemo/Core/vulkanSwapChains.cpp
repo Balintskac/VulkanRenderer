@@ -1,4 +1,5 @@
 #include "vulkanSwapChains.h"
+#include "../vulkanTextureManager.h"
 
 void VulkanSwapChain::createSwapChain(VkPhysicalDevice p_device, VkSurfaceKHR surface, GLFWwindow* window)
 {
@@ -90,13 +91,19 @@ void VulkanSwapChain::createFramebuffers(VkRenderPass& renderPass)
 {
     swapChainFramebuffers.resize(swapChainImageViews.size());
 
+
     for (size_t i = 0; i < swapChainImageViews.size(); i++)
     {
+        std::array<VkImageView, 2> attachments = {
+            swapChainImageViews[i],
+             VulkanTextureManager::depthImageView
+        };
+
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = &swapChainImageViews[i];
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = swapChainExtent.width;
         framebufferInfo.height = swapChainExtent.height;
         framebufferInfo.layers = 1;

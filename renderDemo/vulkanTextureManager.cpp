@@ -3,8 +3,10 @@
 #include <iostream>
 namespace fs = std::filesystem;
 
+
 VkImageView VulkanTextureManager::textureImageView = VK_NULL_HANDLE;
 VkSampler VulkanTextureManager::textureSampler = VK_NULL_HANDLE;
+VkImageView VulkanTextureManager::depthImageView = VK_NULL_HANDLE;
 void VulkanTextureManager::createTextureImage()
 {
    // stbi_uc* pixels = stbi_load("models/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -71,7 +73,7 @@ void VulkanTextureManager::createTextureImage()
         vkFreeMemory(device, stagingBufferMemory, nullptr);
 
         // image view
-        textures[i].imageView = createImageView(textures[i].image, VK_FORMAT_R8G8B8A8_SRGB);
+        textures[i].imageView = createImageView(textures[i].image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
         // sampler
         VkSamplerCreateInfo samplerInfo{};
@@ -133,7 +135,7 @@ void VulkanTextureManager::createImage(uint32_t width, uint32_t height, VkFormat
 
 void VulkanTextureManager::createTextureImageView()
 {
-    VulkanTextureManager::textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+    VulkanTextureManager::textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -182,7 +184,7 @@ void VulkanTextureManager::createTextureSampler()
 
 }
 
-VkImageView VulkanTextureManager::createImageView(VkImage image, VkFormat format)
+VkImageView VulkanTextureManager::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -194,6 +196,7 @@ VkImageView VulkanTextureManager::createImageView(VkImage image, VkFormat format
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
+    viewInfo.subresourceRange.aspectMask = aspectFlags;
 
     VkImageView imageView;
     if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
@@ -267,6 +270,17 @@ void VulkanTextureManager::transitionImageLayout(VkCommandBuffer& commandBuffer,
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;
 
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (hasStencilComponent(format)) {
+            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -280,6 +294,13 @@ void VulkanTextureManager::transitionImageLayout(VkCommandBuffer& commandBuffer,
 
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     }
     else {
         throw std::invalid_argument("unsupported layout transition!");
@@ -324,3 +345,52 @@ void VulkanTextureManager::copyBufferToImage(VkCommandBuffer& commandBuffer, VkB
         &region
     );
 }
+
+void VulkanTextureManager::createDepthResources(const VkExtent2D &swapChainExtent)
+{
+    VkFormat depthFormat = findDepthFormat();
+
+    createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, 
+        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+
+    VulkanTextureManager::depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+  
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+    transitionImageLayout(commandBuffer, depthImage, depthFormat, 
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+VkFormat VulkanTextureManager::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+    for (VkFormat format : candidates) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+            return format;
+        }
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+            return format;
+        }
+    }
+
+    throw std::runtime_error("failed to find supported format!");
+}
+
+VkFormat VulkanTextureManager::findDepthFormat()
+{
+    return findSupportedFormat(
+        { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+}
+
+bool VulkanTextureManager::hasStencilComponent(VkFormat format)
+{
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+        format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
