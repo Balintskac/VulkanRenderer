@@ -1,4 +1,6 @@
 #include "VulkanGraphicsPipeline.h"
+#include "../modelLoader.h"
+#include <vector>
 
 void VulkanGraphicsPipeline::createGraphicsPipeline(VkPipelineLayout& pipelineLayout)
 {
@@ -48,7 +50,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkPipelineLayout& pipelineLa
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
     //rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
@@ -59,12 +61,20 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkPipelineLayout& pipelineLa
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.blendEnable = VK_TRUE;  // Engedélyezni kell a blendinget
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.pNext = nullptr;
+    colorBlending.logicOpEnable = VK_FALSE;  // Nincs logikai mûvelet
     colorBlending.logicOp = VK_LOGIC_OP_COPY;
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
@@ -226,10 +236,11 @@ void VulkanGraphicsPipeline::createSyncObjects()
     }
 }
 
-void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
-    VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer,
+void VulkanGraphicsPipeline::drawFrame(
+    const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
+    VulkanSwapChain& swapChain, VulkanWindow& window,
     void* uniformBuffersMapped, VkPipelineLayout& pipelineLayout,
-    VkDescriptorSet& descriptorSets, const VkBuffer& instanceBuffer)
+    VkDescriptorSet& descriptorSets, const std::vector<MeshObject>& meshes)
 {
     auto& device = deviceManager.getDevice();
 
@@ -258,8 +269,7 @@ void VulkanGraphicsPipeline::drawFrame(const VulkanDevice& deviceManager, Vulkan
     vkCmdBuffer.recordCommandBuffer(vkCmdBuffer.commandBuffer,
         imageIndex, renderPass, 
         swapChain, graphicsPipeline,
-        vertexBuffer, indexBuffer, 
-        pipelineLayout, descriptorSets, instanceBuffer);
+        pipelineLayout, descriptorSets,meshes);
 
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
@@ -354,17 +364,24 @@ void VulkanGraphicsPipeline::updateUniformBuffer(void* uniformBuffersMapped, con
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(
+  /* 
+  ubo.model = glm::rotate(
         glm::scale(glm::mat4(1.0f), glm::vec3(0.2, 0.2, 0.2)),
         time * glm::radians(45.0f),
         glm::vec3(0.0f, 1.0f, 1.0f)
     );
-    ubo.view = glm::lookAt(glm::vec3(-30.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    */
+    ubo.model = glm::mat4(1);
+  //  ubo.view = glm::lookAt(glm::vec3(-30.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.view = glm::lookAt(cam.position, cam.position + cam.front, cam.up);
+
     ubo.proj = glm::perspective(glm::radians(45.0f),
         width / (float)height,
-        0.01f, 1000.0f);
+        0.01f, 100000.0f);
 
     ubo.proj[1][1] *= -1;
+
+   // std::cout << cam.position.x << std::endl;
 
     memcpy(uniformBuffersMapped, &ubo, sizeof(ubo));
 }

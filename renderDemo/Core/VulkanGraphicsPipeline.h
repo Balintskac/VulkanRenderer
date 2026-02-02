@@ -26,9 +26,12 @@ public:
     VkFence inFlightFence;
     VkRenderPass renderPass;
     VkDevice device;
+    Camera cam;
 
-    VulkanGraphicsPipeline(const VkDevice& device, const VkPhysicalDevice& physicalDevice) 
-        :  device(device), physicalDevice(physicalDevice){}
+    VulkanGraphicsPipeline(const VkDevice& device,
+        const VkPhysicalDevice& physicalDevice,
+        Camera& cam)
+        :  device(device), physicalDevice(physicalDevice), cam(cam){}
 
     ~VulkanGraphicsPipeline() 
     {
@@ -64,9 +67,8 @@ public:
     void createSyncObjects();
 
     void drawFrame(const VulkanDevice& deviceManager, VulkanCommandBuffer& vkCmdBuffer, 
-        VulkanSwapChain& swapChain, VulkanWindow& window, const VkBuffer& vertexBuffer,
-        const VkBuffer& indexBuffer, void* uniformBuffersMapped, VkPipelineLayout& pipelineLayout,
-        VkDescriptorSet& descriptorSets, const VkBuffer& instanceBuffer);
+        VulkanSwapChain& swapChain, VulkanWindow& window, void* uniformBuffersMapped, VkPipelineLayout& pipelineLayout,
+        VkDescriptorSet& descriptorSets, const std::vector<MeshObject>& meshes);
 
     void recreateSwapChain(const VulkanWindow& window);
   

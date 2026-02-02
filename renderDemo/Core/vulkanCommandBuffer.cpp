@@ -30,9 +30,8 @@ void VulkanCommandBuffer::createCommandBuffer()
 
 void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, 
     uint32_t imageIndex, VkRenderPass renderPass, VulkanSwapChain& vulkanSwapChain,
-    VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer, 
-    const VkBuffer& indexBuffer, VkPipelineLayout& pipelineLayout,
-    VkDescriptorSet& descriptorSets, const VkBuffer& instanceBuffer)
+    VkPipeline graphicsPipeline, VkPipelineLayout& pipelineLayout,
+    VkDescriptorSet& descriptorSets, const std::vector<MeshObject>& meshes)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -58,16 +57,12 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+ 
    // VkDeviceSize vertexBufferSize = sizeof(Vertex) * 4;
 
    // VkDeviceSize offsets[2] = { 0, vertexBufferSize };
   //  VkBuffer buffers[2] = { vertexBuffer, vertexBuffer }; // ugyanaz a buffer kétszer
-    VkBuffer vertexBuffers[] = { vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    // For the model 32
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+ 
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -84,12 +79,12 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
    
+    /*
     vkCmdBindDescriptorSets(commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS, 
         pipelineLayout, 0, 1,
         &descriptorSets, 0, nullptr);
 
-    /*
     for (int i = 0; i < 54; ++i) {
         vkCmdPushConstants(
             commandBuffer,
@@ -99,13 +94,24 @@ void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer,
             sizeof(int),
             &i
         );
-
-    }
     */
+
+        // Render using separate buffers
+    VkDeviceSize offsets[1] = { 0 };
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    for (const auto& mesh : meshes)
+    {
+        //VkBuffer vertexBuffers[] = { mesh.vertexBuffer };
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &mesh.descriptorSet, 0, NULL);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh.vertexBuffer, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, mesh.indexCount, 1, 0, 0, 0);
+    }
+    
     // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
   //  vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
-    vkCmdDrawIndexed(commandBuffer, 786801, 1, 0, 0, 0);
+   // vkCmdDrawIndexed(commandBuffer, 809292, 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

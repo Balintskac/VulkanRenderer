@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "vulkanQueue.h"
 #include "vulkanSwapChains.h"
+#include "../modelLoader.h"
 
 class VulkanCommandBuffer 
 {
@@ -25,7 +26,13 @@ public:
 
     void createCommandBuffer();
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkRenderPass renderPass, VulkanSwapChain& vulkanSwapChain, VkPipeline graphicsPipeline, const VkBuffer& vertexBuffer, const VkBuffer& indexBuffer, VkPipelineLayout& pipelineLayout, VkDescriptorSet& descriptorSets, const VkBuffer& instanceBuffer);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer,
+        uint32_t imageIndex, VkRenderPass renderPass,
+        VulkanSwapChain& vulkanSwapChain,
+        VkPipeline graphicsPipeline,
+        VkPipelineLayout& pipelineLayout,
+        VkDescriptorSet& descriptorSets,
+        const std::vector<MeshObject>& meshes);
 
 
     VkCommandBuffer beginSingleTimeCommands();

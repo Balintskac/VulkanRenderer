@@ -12,7 +12,6 @@ struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
-    int texIndex;
 
     static std::array<VkVertexInputBindingDescription, 1> getBindingDescription() {
         std::array<VkVertexInputBindingDescription, 1> bindingDescription = {};
@@ -29,8 +28,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
@@ -47,10 +46,10 @@ struct Vertex {
         attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
-        attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
-        attributeDescriptions[3].offset = offsetof(Vertex, texIndex);
+  //      attributeDescriptions[3].binding = 0;
+  //      attributeDescriptions[3].location = 3;
+   //     attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+  //      attributeDescriptions[3].offset = offsetof(Vertex, texIndex);
 
         // instance offset
      //   attributeDescriptions[3].binding = 1;
@@ -67,5 +66,15 @@ struct UniformBufferObject
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+};
+
+struct Camera {
+    glm::vec3 position{ 0.0f, 0.0f, 10.0f };
+    glm::vec3 front{ 0.0f, 0.0f, -1.0f };
+    glm::vec3 up{ 0.0f, 1.0f, 0.0f };
+    float yaw = -90.0f; // jobbra-balra forgás
+    float pitch = 0.0f;   // fel-le forgás
+    float speed = 10.5f;
+    float sensitivity = 0.1f;
 };
 

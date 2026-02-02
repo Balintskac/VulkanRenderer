@@ -12,13 +12,13 @@ struct Texture {
 	VkDeviceMemory memory;
 	VkImageView imageView;
 	VkSampler sampler;
+	VkDescriptorImageInfo descriptor;
 };
 
 class VulkanTextureManager 
 {
 private:
 	VkDevice device;
-	VkPhysicalDevice physicalDevice;
 
 	int texWidth, texHeight, texChannels;
 
@@ -35,6 +35,7 @@ private:
 
 
 public:
+	VkPhysicalDevice physicalDevice;
 	std::vector<Texture> textures; // 50 textúra Sponza-hoz
 	static VkImageView textureImageView;
 	static VkSampler textureSampler;

@@ -127,14 +127,12 @@ void VertexBuffer::createDescriptorSetLayout(const VkDevice& device)
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 54;
+    samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
@@ -215,93 +213,82 @@ void VertexBuffer::createDescriptorPool(const VkDevice& device)
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 1;
+    poolSizes[0].descriptorCount = meshes.size(); 
 
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 54 * 3;
+    poolSizes[1].descriptorCount = meshes.size() * 3; 
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 3;
+    poolInfo.maxSets = meshes.size();
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
     }
 }
 
-void VertexBuffer::createDescriptorSets(const VkDevice& device, const std::vector<Texture>& textures)
+void VertexBuffer::createDescriptorSets(const VkDevice& device, const std::vector<Texture>& textures, std::vector<MeshObject>& meshescske)
 {
-    //std::vector<VkDescriptorSet> descriptorSets(1);  // Allocate space for 1 descriptor set
 
-    std::vector<VkDescriptorImageInfo> imageInfos;
-    imageInfos.reserve(54);
+    // Descriptor sets
+    for (uint32_t i = 0; i < meshescske.size(); i++)
+    {
+        VkDescriptorSetAllocateInfo allocInfo{};
 
-    descriptorWrites.reserve(2);  // 1 for the uniform buffer + 54 for the textures
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &descriptorSetLayout;
+        allocInfo.pNext = NULL;
 
-    VkDescriptorSetAllocateInfo allocInfo{};
-
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &descriptorSetLayout;
-
-    if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-
-
-    // Verify each texture info
-    for (const auto& tex : textures) {
-        if (tex.imageView == VK_NULL_HANDLE || tex.sampler == VK_NULL_HANDLE) {
-            throw std::runtime_error("Invalid texture image view or sampler!");
+        if (vkAllocateDescriptorSets(device, &allocInfo, &meshescske[i].descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
         }
-    }
 
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffers;
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-    for (const auto& tex : textures) {
-        VkDescriptorImageInfo imgInfo{};
-        imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imgInfo.imageView = tex.imageView;
-        imgInfo.sampler = tex.sampler;
-    
-        imageInfos.push_back(imgInfo);
-    }
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(UniformBufferObject);
 
+        // First write: Uniform buffer
+        VkWriteDescriptorSet bufferWrite{};
+        bufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        bufferWrite.dstSet = meshescske[i].descriptorSet;
+        bufferWrite.dstBinding = 0;  // Binding point for the uniform buffer
+     //   bufferWrite.dstArrayElement = 0;
+        bufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bufferWrite.descriptorCount = 1;
+        bufferWrite.pBufferInfo = &bufferInfo;
 
+        writeDescriptorSets.push_back(bufferWrite);
 
-    // First write: Uniform buffer
-    VkWriteDescriptorSet bufferWrite{};
-    bufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    bufferWrite.dstSet = descriptorSets;
-    bufferWrite.dstBinding = 0;  // Binding point for the uniform buffer
-    bufferWrite.dstArrayElement = 0;
-    bufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    bufferWrite.descriptorCount = 1;
-    bufferWrite.pBufferInfo = &bufferInfo;
-
-    descriptorWrites.push_back(bufferWrite);
-
-    // Second write: 54 textures
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = meshescske[i].material->diffuse.descriptor.imageView;
+        imageInfo.sampler = meshescske[i].material->diffuse.descriptor.sampler;
 
         VkWriteDescriptorSet imageWrite{};
         imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        imageWrite.dstSet = descriptorSets;
+        imageWrite.dstSet = meshescske[i].descriptorSet;
         imageWrite.dstBinding = 1;  // Binding point for textures
-        imageWrite.dstArrayElement = 0;  // Array element index for the texture
+      //  imageWrite.dstArrayElement = 0;  // Array element index for the texture
         imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        imageWrite.descriptorCount = 54;
-        imageWrite.pImageInfo = imageInfos.data();
+        imageWrite.descriptorCount = 1;
+        imageWrite.pImageInfo = &imageInfo;
 
-        descriptorWrites.push_back(imageWrite);
-    
+        writeDescriptorSets.push_back(imageWrite);
 
-    vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        std::cout
+            << "mesh " << i
+            << " imageView " << meshescske[i].material->diffuse.descriptor.imageView
+            << " sampler " << meshescske[i].material->diffuse.descriptor.sampler
+            << std::endl;
 
+        vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+    }
 }
 

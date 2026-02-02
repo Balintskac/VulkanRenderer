@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include "Core/StructureTypes.h"
 #include "vulkanTextureManager.h"
+#include <vector>
+#include "modelLoader.h"
 
 class VertexBuffer 
 {
@@ -14,7 +16,10 @@ private:
     VkMemoryRequirements memRequirements;
     VkPhysicalDeviceMemoryProperties memProperties;
     VkBufferCreateInfo bufferInfo{};
+    std::vector<MeshObject> meshes;
 
+public:
+    VertexBuffer(std::vector<MeshObject>& meshes) : meshes(meshes){}
 public:
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSets;
@@ -79,5 +84,5 @@ public:
 
     void createDescriptorPool(const VkDevice& device);
   
-    void createDescriptorSets(const VkDevice& device, const std::vector<Texture>& textures);
+    void createDescriptorSets(const VkDevice& device, const std::vector<Texture>& textures, std::vector<MeshObject>& meshescske);
 };

@@ -7,6 +7,9 @@
 #include <stdexcept> 
 #include <iostream>
 #include "vulkanDevice.h"
+#include "StructureTypes.h"
+#include <glm/detail/func_trigonometric.hpp>
+#include <glm/detail/func_geometric.hpp>
 
 class VulkanManager {
 private:
@@ -27,6 +30,8 @@ private:
 	const std::vector<const char*> deviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
+
+	Camera camera;
 public:
 	VulkanManager() = default;
 
@@ -58,4 +63,8 @@ public:
 	}
 
 	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+
+	void processInput(GLFWwindow* window, float deltaTime);
+
+
 };

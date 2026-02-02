@@ -7,6 +7,7 @@ namespace fs = std::filesystem;
 VkImageView VulkanTextureManager::textureImageView = VK_NULL_HANDLE;
 VkSampler VulkanTextureManager::textureSampler = VK_NULL_HANDLE;
 VkImageView VulkanTextureManager::depthImageView = VK_NULL_HANDLE;
+
 void VulkanTextureManager::createTextureImage()
 {
    // stbi_uc* pixels = stbi_load("models/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -14,16 +15,16 @@ void VulkanTextureManager::createTextureImage()
     std::vector<std::string> textureFiles;
 
     // összes fájl összegyűjtése
-    for (const auto& entry : fs::directory_iterator("models/sponza/textures")) {
+    for (const auto& entry : fs::directory_iterator("models/room/textures")) {
         if (entry.is_regular_file()) {
             textureFiles.push_back(entry.path().string());
         }
     }
 
-    std::vector<VkDescriptorImageInfo> imageInfos(54);
+    std::vector<VkDescriptorImageInfo> imageInfos(3);
     textures.resize(textureFiles.size());
 
-    for (size_t i = 0; i < 54; i++) {
+    for (size_t i = 0; i < 3; i++) {
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(textureFiles[i].c_str(),
             &texWidth, &texHeight,

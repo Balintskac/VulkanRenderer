@@ -134,6 +134,45 @@ void VulkanManager::run()
     VulkanWindow vulkanWindow;
     vulkanWindow.createWindow();
 
+   // glfwSetKeyCallback(window, keyCallback);
+  //  glfwSetScrollCallback(window, scrollCallback);
+    glfwSetWindowUserPointer(&vulkanWindow.getWindow(), &camera);
+    glfwSetCursorPosCallback(&vulkanWindow.getWindow(), [](GLFWwindow * window, double xpos, double ypos) {
+        // kiszedjük a user pointert és visszakasztoljuk
+        Camera* camera = reinterpret_cast<Camera*>(glfwGetWindowUserPointer(window));
+
+        static float lastX = 400, lastY = 300;
+        static bool firstMouse = true;
+
+        if (firstMouse) {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos; // y fordítva
+        lastX = xpos;
+        lastY = ypos;
+
+        xoffset *= camera->sensitivity;
+        yoffset *= camera->sensitivity;
+
+        camera->yaw += xoffset;
+        camera->pitch += yoffset;
+
+        if (camera->pitch > 89.0f) camera->pitch = 89.0f;
+        if (camera->pitch < -89.0f) camera->pitch = -89.0f;
+
+        glm::vec3 direction;
+        direction.x = cos(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
+        direction.y = sin(glm::radians(camera->pitch));
+        direction.z = sin(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
+        camera->front = glm::normalize(direction);
+    });
+    // rejtse el az egeret és lockolja a közepére (FPS stílus)
+    glfwSetInputMode(&vulkanWindow.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     createInstance();
     vulkanWindow.createSurface(instance);
 
@@ -150,7 +189,7 @@ void VulkanManager::run()
     vkSpawnChain.createSwapChain(vkd.getPhysicalDevice(), vulkanWindow.getSurface(), &vulkanWindow.getWindow());
     vkSpawnChain.createImageViews();
 
-    VulkanGraphicsPipeline vkGraphicsPipeline(device, vkd.getPhysicalDevice());
+    VulkanGraphicsPipeline vkGraphicsPipeline(device, vkd.getPhysicalDevice(), camera);
 
     vkGraphicsPipeline.createRenderPass(vkSpawnChain.swapChainImageFormat);
 
@@ -166,40 +205,51 @@ void VulkanManager::run()
    // textureManager.createTextureSampler();
    
     ModelLoader model(device, vkd.getPhysicalDevice());
-    model.loadModel();
-    model.createsVertexBuffer();
-    model.createsIndexBuffer();
+    model.loadModelWithAssimp(textureManager);
+ //   model.loadModel(textureManager);
+   // model.createsVertexBuffer();
+   // model.createsIndexBuffer();
 
-    VertexBuffer vertexBuffer;
+    VertexBuffer vertexBuffer(model.meshes);
 
     vertexBuffer.createUniformBuffers(device, vkd.getPhysicalDevice());
 
     vertexBuffer.createDescriptorSetLayout(device);
     vkGraphicsPipeline.createGraphicsPipeline(vertexBuffer.pipelineLayout);
 
-    vertexBuffer.createVertexBuffer(device);
-    vertexBuffer.memoryAllocation(device, vkd.getPhysicalDevice());
-    vertexBuffer.fillVertexBuffer(device);
+   // vertexBuffer.createVertexBuffer(device);
+   // vertexBuffer.memoryAllocation(device, vkd.getPhysicalDevice());
+  //  vertexBuffer.fillVertexBuffer(device);
 
-    vertexBuffer.createIndexBuffer(device, vkd.getPhysicalDevice());
+//    vertexBuffer.createIndexBuffer(device, vkd.getPhysicalDevice());
     vertexBuffer.createDescriptorPool(device);
-    vertexBuffer.createDescriptorSets(device, textureManager.textures);
+    vertexBuffer.createDescriptorSets(device, textureManager.textures, model.meshes);
     
 
     vkSpawnChain.createFramebuffers(vkGraphicsPipeline.renderPass);
 
 
-
     vkGraphicsPipeline.createSyncObjects();
 
+    float lastFrame = 0.0f;
+    float deltaTime = 0.0f;
 
     while (!glfwWindowShouldClose(&vulkanWindow.getWindow()))
     {
+        float currentFrame = (float)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        
         glfwPollEvents();
+
+        processInput(&vulkanWindow.getWindow(), deltaTime);
+
+        vkGraphicsPipeline.cam.position = camera.position;
+        vkGraphicsPipeline.cam.front = camera.front;
+
         vkGraphicsPipeline.drawFrame(vkd, vkCmdBuffer, vkSpawnChain, vulkanWindow,
-            model.vertexBuffer, model.indexBuffer,
-            vertexBuffer.uniformBuffersMapped,
-            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets, model.vertexBuffer);
+           vertexBuffer.uniformBuffersMapped,
+            vertexBuffer.pipelineLayout, vertexBuffer.descriptorSets, model.meshes);
     }
 
     vkDeviceWaitIdle(device);
@@ -229,4 +279,20 @@ VkResult VulkanManager::CreateDebugUtilsMessengerEXT(VkInstance instance, const 
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 
     return VK_ERROR_EXTENSION_NOT_PRESENT;   
+}
+
+void VulkanManager::processInput(GLFWwindow* window, float deltaTime)
+{
+    float velocity = camera.speed * deltaTime;
+
+//    std::cout << camera.position.x << std::endl;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.position += camera.front * velocity;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.position -= camera.front * velocity;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.position -= glm::normalize(glm::cross(camera.front, camera.up)) * velocity;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.position += glm::normalize(glm::cross(camera.front, camera.up)) * velocity;
 }
